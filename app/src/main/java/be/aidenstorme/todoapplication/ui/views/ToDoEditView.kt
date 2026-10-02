@@ -22,7 +22,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.models.User
+import be.aidenstorme.todoapplication.ui.AppTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,44 +91,40 @@ fun ToDoEditView(
             modifier = Modifier.padding(vertical = 4.dp)
         )
 
-        // 1. Title TextField
-        OutlinedTextField(
+        // 1. Title AppTextField
+        AppTextField(
             value = title,
-            onValueChange = { title = it },
-            label = { Text(stringResource(R.string.label_title)) },
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.label_title),
             singleLine = true
-        )
+        ) { title = it }
 
-        // 2. Description TextField
-        OutlinedTextField(
+        // 2. Description AppTextField
+        AppTextField(
             value = description,
-            onValueChange = { description = it },
-            label = { Text(stringResource(R.string.label_description)) },
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.label_description),
+            singleLine = false,
             minLines = 3,
             maxLines = 5
-        )
+        ) { description = it }
 
-        // 3. Assigned User Dropdown TextField
+        // 3. Assigned User Dropdown AppTextField
         ExposedDropdownMenuBox(
             expanded = userDropdownExpanded,
             onExpandedChange = { userDropdownExpanded = !userDropdownExpanded },
             modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedTextField(
+            AppTextField(
                 value = assignedUser?.let {
                     stringResource(R.string.user_full_name, it.firstName, it.lastName)
                 } ?: stringResource(R.string.not_assigned),
-                onValueChange = {},
+                label = stringResource(R.string.label_assigned_user),
                 readOnly = true,
-                label = { Text(stringResource(R.string.label_assigned_user)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = userDropdownExpanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                    .fillMaxWidth()
-            )
+                modifier = Modifier.menuAnchor(
+                    ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                    enabled = true
+                )
+            ) {}
             ExposedDropdownMenu(
                 expanded = userDropdownExpanded,
                 onDismissRequest = { userDropdownExpanded = false }
