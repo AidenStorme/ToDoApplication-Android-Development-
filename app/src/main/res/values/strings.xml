@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">ToDo Application</string>
+    <string name="home_greeting">Hello World!</string>
+    <string name="status_new">New</string>
+    <string name="status_assigned">Assigned</string>
+    <string name="status_finished">Finished</string>
+    <string name="todo_number">#%1$d</string>
+    <string name="assigned_to">Assigned to %1$s %2$s</string>
+    <string name="not_assigned">Not assigned</string>
+    <string name="time_estimated">Time estimated %1$d hours</string>
+    <string name="time_remaining">Time remaining %1$s hours</string>
+    <string name="label_analysis_done_q">Analysis done?</string>
+    <string name="label_development_done_q">Development done?</string>
+    <string name="label_review_testing_done_q">Review &amp; testing done?</string>
+    <string name="label_acceptance_done_q">Acceptance done?</string>
+    <string name="logo_t">T</string>
+    <string name="logo_o">O</string>
+    <string name="logo_d">D</string>
+    <string name="title_add_edit_todo">Add/Edit ToDo</string>
+    <string name="label_title">Title</string>
+    <string name="label_description">Description</string>
+    <string name="label_assigned_user">Assigned User</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    <string name="user_full_name">%1$s %2$s</string>
+</resources>
