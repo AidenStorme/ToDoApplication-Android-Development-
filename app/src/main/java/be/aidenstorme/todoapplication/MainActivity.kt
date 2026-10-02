@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     ToDoEditView(
                         modifier = Modifier.padding(innerPadding),
-                        toDoToEdit = Datasource.getToDos()[0],
+                        toDoToEdit = null, // Set to null for a new blank ToDo so fields start empty with placeholders
                         users = Datasource.getUsers()
                     )
                 }
