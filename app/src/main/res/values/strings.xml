@@ -17,6 +17,7 @@
     <string name="logo_o">O</string>
     <string name="logo_d">D</string>
     <string name="title_add_edit_todo">Add/Edit ToDo</string>
+    <string name="title_todo_list">ToDo List</string>
     <string name="label_title">Title</string>
     <string name="label_description">Description</string>
     <string name="label_assigned_user">Assigned User</string>

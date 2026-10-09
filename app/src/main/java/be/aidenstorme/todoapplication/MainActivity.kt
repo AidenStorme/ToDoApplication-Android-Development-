@@ -10,7 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import be.aidenstorme.todoapplication.data.Datasource
 import be.aidenstorme.todoapplication.ui.theme.ToDoApplicationTheme
-import be.aidenstorme.todoapplication.ui.views.ToDoEditView
+import be.aidenstorme.todoapplication.ui.views.ToDoListView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,10 +19,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             ToDoApplicationTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ToDoEditView(
-                        modifier = Modifier.padding(innerPadding),
-                        toDoToEdit = null, // Set to null for a new blank ToDo so fields start empty with placeholders
-                        users = Datasource.getUsers()
+                    ToDoListView(
+                        toDos = Datasource.getToDos(),
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
