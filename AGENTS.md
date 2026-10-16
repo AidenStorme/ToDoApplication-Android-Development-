@@ -10,10 +10,11 @@
 - Libraries: enkel wat in `gradle/libs.versions.toml` staat. Voeg geen nieuwe libraries toe zonder het eerst te vragen, behalve `androidx.compose.material:material-icons-core` en `material-icons-extended` indien nodig (zie Invoervelden) en `lifecycle-viewmodel-compose` voor ViewModels.
 
 ## Architectuur
+- We maken gebruik van Kotlin, Jetpack Compose, ViewModels en StateFlow.
 - Views in `ui/views`, herbruikbare componenten in `ui`, ViewModels in `ui/viewmodels`, data classes in `models`, hulpfuncties in `utility`.
 - Separation of concerns: de view toont enkel state en stuurt events door. Geen business logic in de views.
-- Elke view heeft één eigen ViewModel met dezelfde naam + `ViewModel` (bv. `AddUserView` → `AddUserViewModel`).
-- De view maakt de ViewModel aan via `val viewModel: AddUserViewModel = viewModel()`. De ViewModel verwijst nooit naar een view, een composable of een `Context`.
+- Elke view/screen composable heeft zijn eigen ViewModel met dezelfde naam + `ViewModel` (bv. `AddUserView` → `AddUserViewModel`).
+- De ViewModel wordt aangemaakt in de parameterlijst ("constructor") van de screen view composable als parameter met standaardwaarde (bv. `fun AddUserView(modifier: Modifier = Modifier, viewModel: AddUserViewModel = viewModel())`). De ViewModel verwijst nooit naar een view, een composable of een `Context`.
 
 ## Mappenstructuur & naamgeving
 - Plaats alle views (volledig scherm) in de map `ui/views`.
