@@ -237,3 +237,21 @@ fun ToDoEditView(
         }
     }
 }
+
+@Composable
+fun AddEditToDoScreen(
+    modifier: Modifier = Modifier,
+    toDoToEdit: ToDo? = null,
+    users: List<User> = emptyList(),
+    onSave: (ToDo) -> Unit = {},
+    onCancel: () -> Unit = {}
+) {
+    ToDoEditView(
+        modifier = modifier,
+        toDoToEdit = toDoToEdit,
+        users = users,
+        onSave = onSave,
+        onCancel = onCancel
+    )
+}
+
