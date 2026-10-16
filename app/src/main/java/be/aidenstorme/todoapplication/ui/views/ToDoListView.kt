@@ -13,6 +13,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,16 +22,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.ui.AppToDoCard
+import be.aidenstorme.todoapplication.ui.viewmodels.ToDoListViewModel
 
 @Composable
 fun ToDoListView(
-    toDos: List<ToDo>,
     modifier: Modifier = Modifier,
+    viewModel: ToDoListViewModel = viewModel(),
     onToDoClick: (ToDo) -> Unit = {}
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -68,7 +74,7 @@ fun ToDoListView(
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(toDos, key = { it.number }) { toDo ->
+            items(uiState.toDos, key = { it.number }) { toDo ->
                 AppToDoCard(
                     toDo = toDo,
                     onClick = { onToDoClick(toDo) }
@@ -76,17 +82,4 @@ fun ToDoListView(
             }
         }
     }
-}
-
-@Composable
-fun ToDoListScreen(
-    toDos: List<ToDo>,
-    modifier: Modifier = Modifier,
-    onToDoClick: (ToDo) -> Unit = {}
-) {
-    ToDoListView(
-        toDos = toDos,
-        modifier = modifier,
-        onToDoClick = onToDoClick
-    )
 }

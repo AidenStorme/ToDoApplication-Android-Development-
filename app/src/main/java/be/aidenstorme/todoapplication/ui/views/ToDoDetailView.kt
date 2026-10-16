@@ -16,11 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,39 +27,26 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
-import java.util.Date
+import be.aidenstorme.todoapplication.ui.viewmodels.ToDoDetailViewModel
 import java.util.Locale
 
 @Composable
-fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
-    // Mutable state for the 4 boolean switches
-    var analysisDone by remember(toDo) { mutableStateOf(toDo.analysisDone) }
-    var developmentDone by remember(toDo) { mutableStateOf(toDo.developmentDone) }
-    var reviewAndTestingDone by remember(toDo) { mutableStateOf(toDo.reviewAndTestingDone) }
-    var acceptanceDone by remember(toDo) { mutableStateOf(toDo.acceptanceDone) }
-
-    // Dynamic calculated states for status and remaining time
-    var statusRes by remember(toDo) { mutableIntStateOf(toDo.statusDescription) }
-    var timeRemaining by remember(toDo) { mutableIntStateOf(toDo.timeRemaining) }
-
-    fun updateToDoState() {
-        toDo.analysisDone = analysisDone
-        toDo.developmentDone = developmentDone
-        toDo.reviewAndTestingDone = reviewAndTestingDone
-        toDo.acceptanceDone = acceptanceDone
-
-        // Automatically update finishedOnDate and status
-        if (acceptanceDone && toDo.assignedToUser != null) {
-            toDo.finishedOnDate = toDo.finishedOnDate ?: Date()
-        } else if (!acceptanceDone) {
-            toDo.finishedOnDate = null
+fun ToDoDetailView(
+    modifier: Modifier = Modifier,
+    toDo: ToDo? = null,
+    viewModel: ToDoDetailViewModel = viewModel()
+) {
+    LaunchedEffect(toDo) {
+        if (toDo != null) {
+            viewModel.setToDo(toDo)
         }
-
-        statusRes = toDo.statusDescription
-        timeRemaining = toDo.timeRemaining
     }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val currentToDo = uiState.toDo ?: toDo ?: return
 
     Column(
         modifier = modifier
@@ -81,14 +66,14 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = stringResource(R.string.todo_number, toDo.number),
+                    text = stringResource(R.string.todo_number, currentToDo.number),
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 36.sp
                     )
                 )
                 Text(
-                    text = stringResource(statusRes),
+                    text = stringResource(currentToDo.statusDescription),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontStyle = FontStyle.Italic,
                         fontSize = 22.sp
@@ -107,7 +92,7 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
 
         // Title
         Text(
-            text = toDo.title,
+            text = currentToDo.title,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp
@@ -116,7 +101,7 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
 
         // Description
         Text(
-            text = toDo.description,
+            text = currentToDo.description,
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontSize = 15.sp
             ),
@@ -124,11 +109,11 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
         )
 
         // Assigned To User
-        val assignedText = if (toDo.assignedToUser != null) {
+        val assignedText = if (currentToDo.assignedToUser != null) {
             stringResource(
                 R.string.assigned_to,
-                toDo.assignedToUser!!.firstName,
-                toDo.assignedToUser!!.lastName
+                currentToDo.assignedToUser!!.firstName,
+                currentToDo.assignedToUser!!.lastName
             )
         } else {
             stringResource(R.string.not_assigned)
@@ -140,7 +125,7 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
 
         // Time Estimated
         Text(
-            text = stringResource(R.string.time_estimated, toDo.timeEstimated),
+            text = stringResource(R.string.time_estimated, currentToDo.timeEstimated),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
         )
 
@@ -148,7 +133,7 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
         Text(
             text = stringResource(
                 R.string.time_remaining,
-                String.format(Locale.US, "%.2f", timeRemaining.toDouble())
+                String.format(Locale.US, "%.2f", currentToDo.timeRemaining.toDouble())
             ),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
         )
@@ -169,38 +154,26 @@ fun ToDoDetailView(toDo: ToDo, modifier: Modifier = Modifier) {
             ) {
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_analysis_done_q),
-                    checked = analysisDone,
-                    onCheckedChange = {
-                        analysisDone = it
-                        updateToDoState()
-                    }
+                    checked = currentToDo.analysisDone,
+                    onCheckedChange = { viewModel.onAnalysisDoneChange(it) }
                 )
 
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_development_done_q),
-                    checked = developmentDone,
-                    onCheckedChange = {
-                        developmentDone = it
-                        updateToDoState()
-                    }
+                    checked = currentToDo.developmentDone,
+                    onCheckedChange = { viewModel.onDevelopmentDoneChange(it) }
                 )
 
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_review_testing_done_q),
-                    checked = reviewAndTestingDone,
-                    onCheckedChange = {
-                        reviewAndTestingDone = it
-                        updateToDoState()
-                    }
+                    checked = currentToDo.reviewAndTestingDone,
+                    onCheckedChange = { viewModel.onReviewAndTestingDoneChange(it) }
                 )
 
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_acceptance_done_q),
-                    checked = acceptanceDone,
-                    onCheckedChange = {
-                        acceptanceDone = it
-                        updateToDoState()
-                    }
+                    checked = currentToDo.acceptanceDone,
+                    onCheckedChange = { viewModel.onAcceptanceDoneChange(it) }
                 )
             }
         }

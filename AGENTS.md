@@ -24,6 +24,7 @@
 - Namen van resources (bv. afbeeldingen/iconen in `mipmap`) zijn volledig lowercase.
 - Packagenamen zijn volledig lowercase, zonder hoofdletters of underscores (bv. `be.aidenstorme.todoapplication`, niet `be.aidenstorme.ToDoApplication`).
 - Data classes (modellen, bv. `ToDoItem`) staan in een aparte package `models`.
+- Uitzondering: UiState-klassen (bv. `ToDoListUiState`) staan in `ui/viewmodels`, in een eigen bestand naast hun ViewModel.
 
 ## Composables
 - Elke composable functie heeft de annotation `@Composable`.
@@ -45,7 +46,7 @@
 
 ## State
 - De ViewModel is de enige eigenaar van de state van een view (single source of truth).
-- De state van een view staat in een aparte data class (bv. `AddUserUiState`).
+- De state van een view staat in een aparte data class met dezelfde naam als de ViewModel, maar met `UiState` i.p.v. `ViewModel` (bv. `ToDoListViewModel` → `ToDoListUiState`).
 - In de ViewModel: een private `MutableStateFlow`, naar buiten enkel een read-only `StateFlow` als `val`.
 - In de View observeer je de `StateFlow` via `collectAsState()`: `val uiState by viewModel.uiState.collectAsState()`.
 - Events (bv. op save klikken) roepen een functie van de ViewModel aan. De view past de state nooit zelf aan.

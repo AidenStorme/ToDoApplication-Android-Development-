@@ -25,9 +25,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,31 +38,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
-import be.aidenstorme.todoapplication.models.User
 import be.aidenstorme.todoapplication.ui.AppTextField
+import be.aidenstorme.todoapplication.ui.viewmodels.ToDoEditViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToDoEditView(
     modifier: Modifier = Modifier,
     toDoToEdit: ToDo? = null,
-    users: List<User> = emptyList(),
+    viewModel: ToDoEditViewModel = viewModel(),
     onSave: (ToDo) -> Unit = {},
     onCancel: () -> Unit = {}
 ) {
-    // Stateful / Observable UI variables
-    var title by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.title ?: "") }
-    var description by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.description ?: "") }
-    var assignedUser by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.assignedToUser) }
+    LaunchedEffect(toDoToEdit) {
+        viewModel.setToDoToEdit(toDoToEdit)
+    }
 
-    var analysisDone by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.analysisDone ?: false) }
-    var developmentDone by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.developmentDone ?: false) }
-    var reviewAndTestingDone by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.reviewAndTestingDone ?: false) }
-    var acceptanceDone by remember(toDoToEdit) { mutableStateOf(toDoToEdit?.acceptanceDone ?: false) }
+    val uiState by viewModel.uiState.collectAsState()
 
-    var userDropdownExpanded by remember { mutableStateOf(false) }
+    // UI-specific state for dropdown expanded (rememberSaveable, NOT in ViewModel)
+    var userDropdownExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -93,19 +93,19 @@ fun ToDoEditView(
 
         // 1. Title AppTextField
         AppTextField(
-            value = title,
+            value = uiState.title,
             label = stringResource(R.string.label_title),
             singleLine = true
-        ) { title = it }
+        ) { viewModel.onTitleChange(it) }
 
         // 2. Description AppTextField
         AppTextField(
-            value = description,
+            value = uiState.description,
             label = stringResource(R.string.label_description),
             singleLine = false,
             minLines = 3,
             maxLines = 5
-        ) { description = it }
+        ) { viewModel.onDescriptionChange(it) }
 
         // 3. Assigned User Dropdown AppTextField
         ExposedDropdownMenuBox(
@@ -114,7 +114,7 @@ fun ToDoEditView(
             modifier = Modifier.fillMaxWidth()
         ) {
             AppTextField(
-                value = assignedUser?.let {
+                value = uiState.assignedUser?.let {
                     stringResource(R.string.user_full_name, it.firstName, it.lastName)
                 } ?: stringResource(R.string.not_assigned),
                 label = stringResource(R.string.label_assigned_user),
@@ -132,11 +132,11 @@ fun ToDoEditView(
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.not_assigned)) },
                     onClick = {
-                        assignedUser = null
+                        viewModel.onAssignedUserChange(null)
                         userDropdownExpanded = false
                     }
                 )
-                users.forEach { user ->
+                uiState.users.forEach { user ->
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -148,7 +148,7 @@ fun ToDoEditView(
                             )
                         },
                         onClick = {
-                            assignedUser = user
+                            viewModel.onAssignedUserChange(user)
                             userDropdownExpanded = false
                         }
                     )
@@ -156,7 +156,7 @@ fun ToDoEditView(
             }
         }
 
-        // Outlined Box containing the 4 workflow switches (Same layout as ToDoDetailView)
+        // Outlined Box containing the 4 workflow switches
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -170,26 +170,26 @@ fun ToDoEditView(
             ) {
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_analysis_done_q),
-                    checked = analysisDone,
-                    onCheckedChange = { analysisDone = it }
+                    checked = uiState.analysisDone,
+                    onCheckedChange = { viewModel.onAnalysisDoneChange(it) }
                 )
 
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_development_done_q),
-                    checked = developmentDone,
-                    onCheckedChange = { developmentDone = it }
+                    checked = uiState.developmentDone,
+                    onCheckedChange = { viewModel.onDevelopmentDoneChange(it) }
                 )
 
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_review_testing_done_q),
-                    checked = reviewAndTestingDone,
-                    onCheckedChange = { reviewAndTestingDone = it }
+                    checked = uiState.reviewAndTestingDone,
+                    onCheckedChange = { viewModel.onReviewAndTestingDoneChange(it) }
                 )
 
                 DetailSwitchRowView(
                     label = stringResource(R.string.label_acceptance_done_q),
-                    checked = acceptanceDone,
-                    onCheckedChange = { acceptanceDone = it }
+                    checked = uiState.acceptanceDone,
+                    onCheckedChange = { viewModel.onAcceptanceDoneChange(it) }
                 )
             }
         }
@@ -209,26 +209,7 @@ fun ToDoEditView(
             }
             Button(
                 onClick = {
-                    val updatedToDo = toDoToEdit?.copy(
-                        title = title,
-                        description = description,
-                        assignedToUser = assignedUser,
-                        analysisDone = analysisDone,
-                        developmentDone = developmentDone,
-                        reviewAndTestingDone = reviewAndTestingDone,
-                        acceptanceDone = acceptanceDone
-                    ) ?: ToDo(
-                        number = 0,
-                        title = title,
-                        description = description,
-                        createdByUser = users.firstOrNull() ?: User(),
-                        assignedToUser = assignedUser,
-                        analysisDone = analysisDone,
-                        developmentDone = developmentDone,
-                        reviewAndTestingDone = reviewAndTestingDone,
-                        acceptanceDone = acceptanceDone
-                    )
-                    onSave(updatedToDo)
+                    viewModel.onSave(onSave)
                 },
                 modifier = Modifier.weight(1f)
             ) {
@@ -237,21 +218,3 @@ fun ToDoEditView(
         }
     }
 }
-
-@Composable
-fun AddEditToDoScreen(
-    modifier: Modifier = Modifier,
-    toDoToEdit: ToDo? = null,
-    users: List<User> = emptyList(),
-    onSave: (ToDo) -> Unit = {},
-    onCancel: () -> Unit = {}
-) {
-    ToDoEditView(
-        modifier = modifier,
-        toDoToEdit = toDoToEdit,
-        users = users,
-        onSave = onSave,
-        onCancel = onCancel
-    )
-}
-
