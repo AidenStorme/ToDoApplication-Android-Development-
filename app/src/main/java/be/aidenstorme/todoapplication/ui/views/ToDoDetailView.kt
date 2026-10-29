@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,7 +39,9 @@ import java.util.Locale
 fun ToDoDetailView(
     modifier: Modifier = Modifier,
     toDo: ToDo? = null,
-    viewModel: ToDoDetailViewModel = viewModel()
+    viewModel: ToDoDetailViewModel = viewModel(),
+    onBack: () -> Unit = {},
+    onEdit: () -> Unit = {}
 ) {
     LaunchedEffect(toDo) {
         if (toDo != null) {
@@ -51,6 +55,7 @@ fun ToDoDetailView(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -175,6 +180,27 @@ fun ToDoDetailView(
                     checked = currentToDo.acceptanceDone,
                     onCheckedChange = { viewModel.onAcceptanceDoneChange(it) }
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Action Buttons: Back and Edit
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.btn_back))
+            }
+            androidx.compose.material3.Button(
+                onClick = onEdit,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.btn_edit))
             }
         }
     }

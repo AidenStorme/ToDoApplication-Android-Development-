@@ -23,5 +23,8 @@
     <string name="label_assigned_user">Assigned User</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_save">Save</string>
+    <string name="btn_add">Add ToDo</string>
+    <string name="btn_edit">Edit</string>
+    <string name="btn_back">Back</string>
     <string name="user_full_name">%1$s %2$s</string>
 </resources>

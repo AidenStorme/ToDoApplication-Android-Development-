@@ -32,7 +32,8 @@ import be.aidenstorme.todoapplication.ui.viewmodels.ToDoListViewModel
 fun ToDoListView(
     modifier: Modifier = Modifier,
     viewModel: ToDoListViewModel = viewModel(),
-    onToDoClick: (ToDo) -> Unit = {}
+    onToDoClick: (ToDo) -> Unit = {},
+    onAddToDoClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -66,6 +67,14 @@ fun ToDoListView(
             color = Color.Red,
             modifier = Modifier.padding(vertical = 4.dp)
         )
+
+        // Add ToDo Button
+        androidx.compose.material3.Button(
+            onClick = onAddToDoClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.btn_add))
+        }
 
         // Scrollable LazyColumn displaying all ToDo items
         LazyColumn(
