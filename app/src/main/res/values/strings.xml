@@ -26,5 +26,6 @@
     <string name="btn_add">Add ToDo</string>
     <string name="btn_edit">Edit</string>
     <string name="btn_back">Back</string>
+    <string name="btn_im_lazy">I\'m lazy</string>
     <string name="user_full_name">%1$s %2$s</string>
 </resources>

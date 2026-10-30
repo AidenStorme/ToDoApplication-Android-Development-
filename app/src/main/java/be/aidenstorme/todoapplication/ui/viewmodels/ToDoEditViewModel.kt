@@ -1,6 +1,8 @@
 package be.aidenstorme.todoapplication.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import be.aidenstorme.todoapplication.data.BoredApiService
 import be.aidenstorme.todoapplication.data.Datasource
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.models.User
@@ -8,6 +10,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 class ToDoEditViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ToDoEditUiState())
@@ -76,6 +81,24 @@ class ToDoEditViewModel : ViewModel() {
 
     fun onAcceptanceDoneChange(done: Boolean) {
         _uiState.update { it.copy(acceptanceDone = done) }
+    }
+
+    fun fetchRandomActivity() {
+        viewModelScope.launch {
+            try {
+                val response = BoredApiService.retrofitService.getRandomActivity()
+                _uiState.update {
+                    it.copy(
+                        title = response.activity,
+                        description = response.type
+                    )
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            } catch (e: HttpException) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun onSave(onSaveCallback: (ToDo) -> Unit) {

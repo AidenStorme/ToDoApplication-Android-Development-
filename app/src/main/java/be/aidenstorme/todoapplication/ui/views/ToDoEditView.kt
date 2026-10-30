@@ -107,6 +107,15 @@ fun ToDoEditView(
             maxLines = 5
         ) { viewModel.onDescriptionChange(it) }
 
+        if (uiState.toDoToEdit == null) {
+            OutlinedButton(
+                onClick = { viewModel.fetchRandomActivity() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.btn_im_lazy))
+            }
+        }
+
         // 3. Assigned User Dropdown AppTextField
         ExposedDropdownMenuBox(
             expanded = userDropdownExpanded,
