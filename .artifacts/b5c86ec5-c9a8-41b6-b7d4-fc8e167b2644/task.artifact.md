@@ -1,0 +1,6 @@
+- [x] Review and approve implementation plan
+- [x] Add Retrofit and OkHttp dependencies to version catalog and build.gradle.kts
+- [x] Add INTERNET permission to AndroidManifest.xml
+- [x] Create BoredActivityResponse data class with kotlinx.serialization
+- [/] Create BoredApiService Retrofit interface
+- [ ] Verify build (`./gradlew assembleDebug`)
