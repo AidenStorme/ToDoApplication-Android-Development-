@@ -7,11 +7,17 @@
 ## Tech stack
 - Kotlin, Jetpack Compose, Material 3
 - minSdk: 36 / targetSdk: 37 / compileSdk: 37
-- Libraries: enkel wat in `gradle/libs.versions.toml` staat. Voeg geen nieuwe libraries toe zonder het eerst te vragen, behalve `androidx.compose.material:material-icons-core` en `material-icons-extended` indien nodig (zie Invoervelden), `lifecycle-viewmodel-compose` voor ViewModels, en voor navigatie de Navigation 3-libraries (`androidx.navigation3:navigation3-runtime`, `androidx.navigation3:navigation3-ui`), `androidx.lifecycle:lifecycle-viewmodel-navigation3` (voor ViewModels per scherm) en `kotlinx-serialization` voor de `@Serializable` destinations.
+- Libraries: enkel wat in `gradle/libs.versions.toml` staat. Voeg geen nieuwe libraries toe zonder het eerst te vragen, behalve:
+  - `material-icons-core` / `material-icons-extended` (zie Invoervelden)
+  - `lifecycle-viewmodel-compose` voor ViewModels
+  - Retrofit + de kotlinx.serialization converter, `kotlinx-serialization-json` en de Kotlin serialization plugin voor netwerkcalls
+  - Coil (`coil-compose`) voor afbeeldingen van het internet
+  - en voor navigatie de Navigation 3-libraries (`androidx.navigation3:navigation3-runtime`, `androidx.navigation3:navigation3-ui`), `androidx.lifecycle:lifecycle-viewmodel-navigation3` (voor ViewModels per scherm) en `kotlinx-serialization` voor de `@Serializable` destinations.
 
 ## Architectuur
 - We maken gebruik van Kotlin, Jetpack Compose, ViewModels en StateFlow.
-- Views in `ui/views`, herbruikbare componenten in `ui`, ViewModels in `ui/viewmodels`, data classes in `models`, hulpfuncties in `utility`, navigatiecode in `ui/navigation`.
+- Views in `ui/views`, herbruikbare componenten in `ui`, ViewModels en UiStates in `ui/viewmodels`, data classes in `model`, API-interfaces in `network`, repositories en de `AppContainer` in `data`, hulpfuncties in `utility`, navigatiecode in `ui/navigation`.
+- Lagen: View → ViewModel → Repository → ApiService. Een laag verwijst enkel naar de laag eronder, nooit omgekeerd.
 - Separation of concerns: de view toont enkel state en stuurt events door. Geen business logic in de views.
 - Elke view heeft één eigen ViewModel met dezelfde naam + `ViewModel` (bv. `AddUserView` → `AddUserViewModel`).
 - De view maakt de ViewModel aan via `viewModel()` in de parameterlijst met standaardwaarde (bv. `viewModel: AddUserViewModel = viewModel()`). Heeft een ViewModel parameters nodig (bv. een id uit de navigatie), dan wordt die via een Factory class aangemaakt in de navigatie (zie Navigatie). De ViewModel verwijst nooit naar een view, een composable, een navigator of een `Context`.
@@ -24,7 +30,7 @@
 - De naam van de functie is gelijk aan de bestandsnaam (bv. `ToDoListView.kt` bevat `fun ToDoListView(...)`).
 - Namen van resources (bv. afbeeldingen/iconen in `mipmap`) zijn volledig lowercase.
 - Packagenamen zijn volledig lowercase, zonder hoofdletters of underscores (bv. `be.aidenstorme.todoapplication`, niet `be.aidenstorme.ToDoApplication`).
-- Data classes (modellen, bv. `ToDoItem`) staan in een aparte package `models`.
+- Data classes (modellen, bv. `ToDoItem`) staan in een aparte package `model`.
 - Uitzondering: UiState-klassen (bv. `ToDoListUiState`) staan in `ui/viewmodels`, in een eigen bestand naast hun ViewModel.
 
 ## Composables
@@ -47,10 +53,35 @@
 
 ## State
 - De ViewModel is de enige eigenaar van de state van een view (single source of truth).
-- De state van een view staat in een aparte data class met dezelfde naam als de ViewModel, maar met `UiState` i.p.v. `ViewModel` (bv. `ToDoListViewModel` → `ToDoListUiState`).
+- De state van een view staat in een UiState met dezelfde naam als de ViewModel, maar met `UiState` i.p.v. `ViewModel` (bv. `ToDoListViewModel` → `ToDoListUiState`), in een eigen bestand in `ui/viewmodels`.
+- Laadt een scherm data van het internet, dan is de UiState een `sealed interface` met `Loading`, `Success(data)` en `Error`. De view toont voor elk van de drie een ander scherm (laadindicator, inhoud, foutmelding).
 - In de ViewModel: een private `MutableStateFlow`, naar buiten enkel een read-only `StateFlow` als `val`.
 - Events (bv. op save klikken) roepen een functie van de ViewModel aan. De view past de state nooit zelf aan.
 - `rememberSaveable` enkel voor state die puur bij de UI van één component hoort (bv. open/dichtgeklapt, checkmark). Gebruik `by`, niet `=`: `var expanded by rememberSaveable { mutableStateOf(false) }`.
+
+## Netwerk & API (Retrofit)
+- De `INTERNET`-permission staat in `AndroidManifest.xml`.
+- Elke API heeft een interface in `network` (bv. `ToDoApiService`) met `suspend`-functies en Retrofit-annotaties (`@GET`, `@POST`, …).
+- Gebruik `kotlinx.serialization` om JSON om te zetten: data classes in `model` krijgen `@Serializable`, en `@SerialName("...")` als de JSON-naam verschilt van de Kotlin-naam.
+- De base URL staat op één plaats (in de `AppContainer`), niet verspreid in de code.
+- Een view of ViewModel roept de ApiService nooit rechtstreeks aan, altijd via een repository.
+
+## Repository & dependency injection
+- Per soort data één repository: een interface (bv. `ToDoRepository`) en een implementatie (bv. `NetworkToDoRepository`), genoemd naar de data waarvoor ze verantwoordelijk is.
+- De repository is de enige toegang tot data voor de ViewModels.
+- Manuele dependency injection: een `AppContainer`-interface met een `DefaultAppContainer` die Retrofit, de ApiService en de repositories aanmaakt.
+- Een eigen `Application`-klasse (bv. `ToDoApplication`) maakt de `AppContainer` aan en wordt geregistreerd in `AndroidManifest.xml` (`android:name`).
+- Een ViewModel krijgt zijn repository via de constructor, nooit door hem zelf aan te maken.
+- Omdat de ViewModel dan een constructorparameter heeft, maak je hem aan met een factory (`viewModelFactory { initializer { ... } }` in een `companion object`) en in de view met `viewModel(factory = XxxViewModel.Factory)`.
+
+## Coroutines
+- Netwerkcalls en andere trage taken zijn `suspend`-functies.
+- Een ViewModel start ze met `viewModelScope.launch { ... }`, nooit `GlobalScope` of `runBlocking`.
+- Vang fouten op met `try/catch` (`IOException` voor netwerkproblemen, `HttpException` voor foutcodes van de server) en zet het resultaat in de UiState.
+
+## Afbeeldingen
+- Afbeeldingen van een URL tonen met Coil `AsyncImage`, altijd met een `placeholder` (laden) en een `error`-afbeelding uit `res/drawable`.
+- Een `contentDescription` komt uit `strings.xml`, behalve bij decoratieve afbeeldingen (`null`).
 
 ## Navigatie
 - De app gebruikt **Navigation 3**, de officiële Android-navigatielibrary. Gebruik bij het implementeren van navigatie altijd de Navigation 3-skill en volg de aanpak daaruit (backstack als lijst van keys, `NavDisplay`, entry provider).
