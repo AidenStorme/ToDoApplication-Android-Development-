@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,14 +40,16 @@ import java.util.Locale
 @Composable
 fun ToDoDetailView(
     modifier: Modifier = Modifier,
+    todoNumber: Int? = null,
     toDo: ToDo? = null,
     viewModel: ToDoDetailViewModel = viewModel(),
     onBack: () -> Unit = {},
     onEdit: () -> Unit = {}
 ) {
-    LaunchedEffect(toDo) {
-        if (toDo != null) {
-            viewModel.setToDo(toDo)
+    val numberToLoad = todoNumber ?: toDo?.number
+    LaunchedEffect(numberToLoad) {
+        if (numberToLoad != null) {
+            viewModel.loadToDo(numberToLoad)
         }
     }
 
@@ -114,11 +118,12 @@ fun ToDoDetailView(
         )
 
         // Assigned To User
-        val assignedText = if (currentToDo.assignedToUser != null) {
+        val assignedUser = uiState.assignedUser
+        val assignedText = if (assignedUser != null) {
             stringResource(
                 R.string.assigned_to,
-                currentToDo.assignedToUser!!.firstName,
-                currentToDo.assignedToUser!!.lastName
+                assignedUser.firstName,
+                assignedUser.lastName
             )
         } else {
             stringResource(R.string.not_assigned)
@@ -190,13 +195,13 @@ fun ToDoDetailView(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            androidx.compose.material3.OutlinedButton(
+            OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.btn_back))
             }
-            androidx.compose.material3.Button(
+            Button(
                 onClick = onEdit,
                 modifier = Modifier.weight(1f)
             ) {

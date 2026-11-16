@@ -21,11 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
+import be.aidenstorme.todoapplication.models.User
 
 @Composable
 fun AppToDoCard(
     toDo: ToDo,
     modifier: Modifier = Modifier,
+    assignedUser: User? = null,
     onClick: () -> Unit = {}
 ) {
     Surface(
@@ -69,11 +71,11 @@ fun AppToDoCard(
                 )
             )
 
-            val assignedText = if (toDo.assignedToUser != null) {
+            val assignedText = if (assignedUser != null) {
                 stringResource(
                     R.string.assigned_to,
-                    toDo.assignedToUser!!.firstName,
-                    toDo.assignedToUser!!.lastName
+                    assignedUser.firstName,
+                    assignedUser.lastName
                 )
             } else {
                 stringResource(R.string.not_assigned)

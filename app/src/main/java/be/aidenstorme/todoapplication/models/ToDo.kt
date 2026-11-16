@@ -1,41 +1,67 @@
 package be.aidenstorme.todoapplication.models
 
 import androidx.annotation.StringRes
+import androidx.room.Entity
+import androidx.room.Ignore
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
 import be.aidenstorme.todoapplication.R
-import java.util.Date
 import kotlin.math.roundToInt
 
+@Entity(
+    tableName = "todos",
+    foreignKeys = [
+        ForeignKey(
+            entity = User::class,
+            parentColumns = ["id"],
+            childColumns = ["createdByUserId"],
+            onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = User::class,
+            parentColumns = ["id"],
+            childColumns = ["assignedToUserId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [
+        Index(value = ["createdByUserId"]),
+        Index(value = ["assignedToUserId"])
+    ]
+)
 data class ToDo(
-    var number: Int,
-    var title: String,
-    var description: String,
-    var createdByUser: User,
-    var createOnDate: Date = Date(),
-    var assignedToUser: User? = null,
-    var finishedOnDate: Date? = null,
+    @PrimaryKey(autoGenerate = true)
+    var number: Int = 0,
+    var title: String = "",
+    var description: String = "",
+    var createdByUserId: Int = 0,
+    var createOnDate: Long = System.currentTimeMillis(),
+    var assignedToUserId: Int? = null,
+    var finishedOnDate: Long? = null,
     var timeEstimated: Int = 0,
     var analysisDone: Boolean = false,
     var developmentDone: Boolean = false,
     var reviewAndTestingDone: Boolean = false,
     var acceptanceDone: Boolean = false
 ) {
-    // Secondary constructor for the 8 fields marked with * in specification
+    @Ignore
     constructor(
         number: Int,
         title: String,
         description: String,
-        createdByUser: User,
-        createOnDate: Date,
-        assignedToUser: User?,
-        finishedOnDate: Date?,
+        createdByUserId: Int,
+        createOnDate: Long,
+        assignedToUserId: Int?,
+        finishedOnDate: Long?,
         timeEstimated: Int
     ) : this(
         number = number,
         title = title,
         description = description,
-        createdByUser = createdByUser,
+        createdByUserId = createdByUserId,
         createOnDate = createOnDate,
-        assignedToUser = assignedToUser,
+        assignedToUserId = assignedToUserId,
         finishedOnDate = finishedOnDate,
         timeEstimated = timeEstimated,
         analysisDone = false,
@@ -46,9 +72,9 @@ data class ToDo(
 
     val status: Status
         get() {
-            return if (assignedToUser != null && finishedOnDate != null) {
+            return if (assignedToUserId != null && finishedOnDate != null) {
                 Status.FINISHED
-            } else if (assignedToUser != null) {
+            } else if (assignedToUserId != null) {
                 Status.ASSIGNED
             } else {
                 Status.NEW

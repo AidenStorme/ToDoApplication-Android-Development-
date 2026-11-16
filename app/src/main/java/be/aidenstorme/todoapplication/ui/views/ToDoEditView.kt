@@ -48,13 +48,15 @@ import be.aidenstorme.todoapplication.ui.viewmodels.ToDoEditViewModel
 @Composable
 fun ToDoEditView(
     modifier: Modifier = Modifier,
+    todoNumberToEdit: Int? = null,
     toDoToEdit: ToDo? = null,
     viewModel: ToDoEditViewModel = viewModel(),
-    onSave: (ToDo) -> Unit = {},
+    onSave: () -> Unit = {},
     onCancel: () -> Unit = {}
 ) {
-    LaunchedEffect(toDoToEdit) {
-        viewModel.setToDoToEdit(toDoToEdit)
+    val numberToLoad = todoNumberToEdit ?: toDoToEdit?.number
+    LaunchedEffect(numberToLoad) {
+        viewModel.loadToDoToEdit(numberToLoad)
     }
 
     val uiState by viewModel.uiState.collectAsState()

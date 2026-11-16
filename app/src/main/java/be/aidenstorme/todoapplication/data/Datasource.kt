@@ -2,7 +2,6 @@ package be.aidenstorme.todoapplication.data
 
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.models.User
-import java.util.Date
 
 object Datasource {
 
@@ -36,13 +35,8 @@ object Datasource {
     }
 
     fun getToDos(): List<ToDo> {
-        val users = getUsers()
-        val userDirk = users[0]
-        val userJane = users[1]
-        val userPeter = users[2]
-
-        val now = Date()
-        val yesterday = Date(now.time - (24 * 60 * 60 * 1000L))
+        val now = System.currentTimeMillis()
+        val yesterday = now - (24 * 60 * 60 * 1000L)
 
         return listOf(
             // 1. Exact item from the assignment PDF screenshot
@@ -50,9 +44,9 @@ object Datasource {
                 number = 1,
                 title = "Finish detail ToDo",
                 description = "Add extra fields like assigned user, time estimated, ...to the ToDo detail screen",
-                createdByUser = userDirk,
+                createdByUserId = 1,
                 createOnDate = yesterday,
-                assignedToUser = userDirk,
+                assignedToUserId = 1,
                 finishedOnDate = now,
                 timeEstimated = 20,
                 analysisDone = false,
@@ -65,9 +59,9 @@ object Datasource {
                 number = 2,
                 title = "Database schema ontwerpen",
                 description = "Ontwerp het ERD en de entiteiten voor de lokale Room database.",
-                createdByUser = userDirk,
+                createdByUserId = 1,
                 createOnDate = yesterday,
-                assignedToUser = null,
+                assignedToUserId = null,
                 finishedOnDate = null,
                 timeEstimated = 8,
                 analysisDone = false,
@@ -80,9 +74,9 @@ object Datasource {
                 number = 3,
                 title = "User Interface bouwen",
                 description = "Implementeer het Jetpack Compose scherm met een LazyColumn voor ToDo items.",
-                createdByUser = userDirk,
+                createdByUserId = 1,
                 createOnDate = yesterday,
-                assignedToUser = userJane,
+                assignedToUserId = 2,
                 finishedOnDate = null,
                 timeEstimated = 12,
                 analysisDone = true,
@@ -90,14 +84,14 @@ object Datasource {
                 reviewAndTestingDone = false,
                 acceptanceDone = false
             ),
-            // 4. Status: ASSIGNED (Assigned to Dirk, in review & testing)
+            // 4. Status: ASSIGNED (Assigned to Aiden, in review & testing)
             ToDo(
                 number = 4,
                 title = "Unit tests schrijven",
                 description = "Schrijf unit tests voor het ToDo model en de status berekeningen.",
-                createdByUser = userPeter,
+                createdByUserId = 3,
                 createOnDate = yesterday,
-                assignedToUser = userDirk,
+                assignedToUserId = 1,
                 finishedOnDate = null,
                 timeEstimated = 6,
                 analysisDone = true,
@@ -110,9 +104,9 @@ object Datasource {
                 number = 5,
                 title = "Projectopzet maken",
                 description = "Initialiseer het Android Studio project en voeg de basismodellen toe.",
-                createdByUser = userDirk,
+                createdByUserId = 1,
                 createOnDate = yesterday,
-                assignedToUser = userPeter,
+                assignedToUserId = 3,
                 finishedOnDate = now,
                 timeEstimated = 2,
                 analysisDone = true,

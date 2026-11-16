@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +32,7 @@ import be.aidenstorme.todoapplication.ui.viewmodels.ToDoListViewModel
 @Composable
 fun ToDoListView(
     modifier: Modifier = Modifier,
-    viewModel: ToDoListViewModel = viewModel(),
+    viewModel: ToDoListViewModel = viewModel(factory = ToDoListViewModel.Factory),
     onToDoClick: (ToDo) -> Unit = {},
     onAddToDoClick: () -> Unit = {}
 ) {
@@ -69,7 +70,7 @@ fun ToDoListView(
         )
 
         // Add ToDo Button
-        androidx.compose.material3.Button(
+        Button(
             onClick = onAddToDoClick,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -84,8 +85,10 @@ fun ToDoListView(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(uiState.toDos, key = { it.number }) { toDo ->
+                val assignedUser = uiState.users.find { it.id == toDo.assignedToUserId }
                 AppToDoCard(
                     toDo = toDo,
+                    assignedUser = assignedUser,
                     onClick = { onToDoClick(toDo) }
                 )
             }
