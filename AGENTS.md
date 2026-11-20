@@ -1,116 +1,155 @@
 # AGENTS.md - Instructies & Richtlijnen voor AI Coding Agents
 
+Elke regel staat maar op één plek. Waar een regel ergens anders hoort, wordt ernaar verwezen.
+
 ## Over het project
 - To-do app voor de cursus AI Driven Android Development (VIVES). Het doel is leren: schrijf eenvoudige, leesbare code die ik kan uitleggen.
-- Huidige stand: lijst van to-do items als startscherm. Er komen drie schermen (ToDoList, ToDoDetail op basis van een id, AddEditToDo) met navigatie via Navigation 3. Nog geen database.
+- Drie schermen: **List** (alle to-do's), **Detail** (één to-do op basis van zijn `number`) en **Edit** (to-do toevoegen of wijzigen). Navigatie via Navigation 3.
+- Data: to-do's en users worden lokaal bewaard met Room. De knop "I'm lazy" haalt een activiteit op via een externe API (Retrofit).
 
 ## Tech stack
 - Kotlin, Jetpack Compose, Material 3
 - minSdk: 36 / targetSdk: 37 / compileSdk: 37
 - Libraries: enkel wat in `gradle/libs.versions.toml` staat. Voeg geen nieuwe libraries toe zonder het eerst te vragen, behalve:
   - `material-icons-core` / `material-icons-extended` (zie Invoervelden)
-  - `lifecycle-viewmodel-compose` voor ViewModels
+  - `lifecycle-viewmodel-compose` voor ViewModels en `lifecycle-runtime-compose` voor `collectAsStateWithLifecycle()`
   - Retrofit + de kotlinx.serialization converter, `kotlinx-serialization-json` en de Kotlin serialization plugin voor netwerkcalls
   - Coil (`coil-compose`) voor afbeeldingen van het internet
-  - en voor navigatie de Navigation 3-libraries (`androidx.navigation3:navigation3-runtime`, `androidx.navigation3:navigation3-ui`), `androidx.lifecycle:lifecycle-viewmodel-navigation3` (voor ViewModels per scherm) en `kotlinx-serialization` voor de `@Serializable` destinations.
+  - Room (`room-runtime`, `room-ktx`, `room-compiler` via KSP) voor de lokale database
+  - Navigation 3 (`androidx.navigation3:navigation3-runtime`, `androidx.navigation3:navigation3-ui`) en `androidx.lifecycle:lifecycle-viewmodel-navigation3` (een ViewModel per scherm)
+  - DI-library: *nog te bepalen* (zie Dependency injection)
 
 ## Architectuur
-- We maken gebruik van Kotlin, Jetpack Compose, ViewModels en StateFlow.
-- Views in `ui/views`, herbruikbare componenten in `ui`, ViewModels en UiStates in `ui/viewmodels`, data classes in `model`, API-interfaces in `network`, repositories en de `AppContainer` in `data`, hulpfuncties in `utility`, navigatiecode in `ui/navigation`.
-- Lagen: View → ViewModel → Repository → ApiService. Een laag verwijst enkel naar de laag eronder, nooit omgekeerd.
+- Lagen: View → ViewModel → Repository → DAO (Room) of ApiService (Retrofit). Een laag verwijst enkel naar de laag eronder, nooit omgekeerd.
 - Separation of concerns: de view toont enkel state en stuurt events door. Geen business logic in de views.
-- Elke view heeft één eigen ViewModel met dezelfde naam + `ViewModel` (bv. `AddUserView` → `AddUserViewModel`).
-- De view maakt de ViewModel aan via `viewModel()` in de parameterlijst met standaardwaarde (bv. `viewModel: AddUserViewModel = viewModel()`). Heeft een ViewModel parameters nodig (bv. een id uit de navigatie), dan wordt die via een Factory class aangemaakt in de navigatie (zie Navigatie). De ViewModel verwijst nooit naar een view, een composable, een navigator of een `Context`.
+- De repository is de enige toegang tot data voor de ViewModels. Een view of ViewModel gebruikt nooit rechtstreeks een DAO of ApiService.
+- Modellen in `models` zijn pure Kotlin: geen verwijzingen naar `R`, `Context` of andere Android-klassen. De vertaling naar tekst (bv. status → `R.string.status_new`) gebeurt in de UI-laag.
+- Hoe objecten aangemaakt en doorgegeven worden: zie Dependency injection.
 
 ## Mappenstructuur & naamgeving
-- Plaats alle views (volledig scherm) in de map `ui/views`.
-- De naam van elke view (volledig scherm) eindigt op `View` (bv. `ToDoListView`, `AddEditTodoView`).
-- De navigatie-composable eindigt op `Nav` (bv. `ToDoNav`) en staat in `ui/navigation`; die eindigt dus niet op `View`, want het is geen scherm.
-- Herbruikbare componenten (kleine bouwstenen die in views gebruikt worden) staan in `ui`, eindigen NIET op `View` en krijgen de prefix `App` (bv. `AppTextField`, `AppButton`).
-- De naam van de functie is gelijk aan de bestandsnaam (bv. `ToDoListView.kt` bevat `fun ToDoListView(...)`).
-- Namen van resources (bv. afbeeldingen/iconen in `mipmap`) zijn volledig lowercase.
-- Packagenamen zijn volledig lowercase, zonder hoofdletters of underscores (bv. `be.aidenstorme.todoapplication`, niet `be.aidenstorme.ToDoApplication`).
-- Data classes (modellen, bv. `ToDoItem`) staan in een aparte package `model`.
-- Uitzondering: UiState-klassen (bv. `ToDoListUiState`) staan in `ui/viewmodels`, in een eigen bestand naast hun ViewModel.
+Basispackage: `be.aidenstorme.todoapplication`. Packagenamen zijn volledig lowercase, zonder hoofdletters of underscores.
+
+| Wat | Package | Naam | Voorbeeld |
+|---|---|---|---|
+| Scherm (volledige view) | `ui/views` | eindigt op `View` | `ToDoListView` |
+| Herbruikbare component | `ui` | prefix `App`, eindigt NIET op `View` | `AppTextField`, `AppToDoCard` |
+| ViewModel | `ui/viewmodels` | `<Scherm>ViewModel` | `ToDoListViewModel` |
+| UiState | `ui/viewmodels` | `<Scherm>UiState`, eigen bestand | `ToDoListUiState` |
+| Navigatie | `ui/navigation` | composable eindigt op `Nav` | `ToDoNav`, `Navigator`, `Screen` |
+| Data class / Room-entity | `models` | naam van het ding | `ToDo`, `User` |
+| API-interface | `network` | eindigt op `ApiService` | `BoredApiService` |
+| Repository | `data` | interface `<Data>Repository`, implementatie `Offline<Data>Repository` (Room) of `Network<Data>Repository` (API) | `ToDoRepository` / `OfflineToDoRepository` |
+| DAO & database | `data` | `<Data>Dao`, `<App>Database` | `ToDoDao`, `ToDoDatabase` |
+| Hulpfuncties | `utility` | `object Utility` | `Utility.checkIntValue(...)` |
+
+- `<Scherm>` is de naam van de view zonder `View` (`ToDoEditView` → `ToDoEditViewModel` + `ToDoEditUiState`).
+- De naam van de functie of klasse is gelijk aan de bestandsnaam (bv. `ToDoListView.kt` bevat `fun ToDoListView(...)`).
+- Namen van resources (bv. afbeeldingen/iconen in `drawable` of `mipmap`) zijn volledig lowercase.
+
+## ViewModels & state
+- Elk scherm heeft één eigen ViewModel en één eigen UiState. Deel nooit een ViewModel tussen schermen, ook niet als een nieuw scherm op een bestaand lijkt. In deze app:
+  - **List**: `ToDoListViewModel` + `ToDoListUiState` voor `ToDoListView`.
+  - **Detail**: `ToDoDetailViewModel` + `ToDoDetailUiState` voor `ToDoDetailView`, krijgt het `number` van de to-do.
+  - **Edit** (toevoegen én wijzigen): `ToDoEditViewModel` + `ToDoEditUiState` voor `ToDoEditView`, krijgt een optioneel `number` (`null` = nieuwe to-do).
+- De ViewModel is de enige eigenaar van de state van een scherm (single source of truth). Hij verwijst nooit naar een view, een composable, een navigator of een `Context`.
+- Een UiState is een `data class` met enkel `val`s en standaardwaarden.
+- Naar buiten geeft de ViewModel enkel een read-only `StateFlow` als `val uiState`.
+  - State die uit Room komt: zet de `Flow` van de repository om met `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), XxxUiState())`.
+  - State die de gebruiker invult (bv. formulier op het Edit-scherm): een private `MutableStateFlow`, aangepast met `_uiState.update { it.copy(...) }`.
+- Data wordt geladen in het `init`-blok van de ViewModel, niet via `LaunchedEffect` in de view.
+- Events (bv. op save klikken) roepen een functie van de ViewModel aan. De view past de state nooit zelf aan.
+- Laadt een scherm zijn inhoud van het internet, dan is de UiState een `sealed interface` met `Loading`, `Success(data)` en `Error`. De view toont voor elk van de drie een ander scherm (laadindicator, inhoud, foutmelding).
+- Is de netwerkcall een actie binnen een scherm dat al inhoud heeft (bv. "I'm lazy" op het Edit-scherm), dan komt een eventuele fout als veld in de bestaande UiState en toont de view een foutmelding.
+- In de view: lees de state met `val uiState by viewModel.uiState.collectAsStateWithLifecycle()`.
+- `rememberSaveable` enkel voor state die puur bij de UI van één component hoort (bv. open/dichtgeklapt). Gebruik `by`, niet `=`: `var expanded by rememberSaveable { mutableStateOf(false) }`.
 
 ## Composables
 - Elke composable functie heeft de annotation `@Composable`.
 - Elke composable functie heeft ALTIJD de parameter `modifier: Modifier = Modifier`, ook als die niet gebruikt wordt bij het aanroepen. Vergeet dit nooit.
 - Geef die `modifier`-parameter altijd door aan het buitenste element van de composable (bv. `Column(modifier = modifier)`).
-- Eigen composables zijn altijd stateless (state hoisting): waarden en callbacks (bv. `value` en `onValueChange`) komen binnen als parameters, nooit hardcoded of met interne state.
+- Herbruikbare componenten (in `ui`) zijn altijd stateless (state hoisting): waarden en callbacks (bv. `value` en `onValueChange`) komen binnen als parameters, nooit hardcoded of met interne state.
+- Schermen (in `ui/views`) krijgen hun ViewModel als parameter. Geef een ViewModel nooit door aan een kleinere composable: geef enkel waarden en callbacks door.
 - Volgorde van parameters: eerst verplichte waarden, dan optionele parameters met een standaardwaarde (incl. `modifier: Modifier = Modifier`), en de callback (bv. `onValueChange`) als laatste, zodat de composable met trailing lambda aangeroepen kan worden: `AppTextField(value = name, label = stringResource(R.string.name)) { name = it }`.
 - Gebruik voor tekst altijd een composable (`Text`).
 - Gebruik GEEN `@Preview`-functies en geen Preview-imports. De app wordt getest in de emulator.
-- Gebruik `Column` om elementen onder elkaar te plaatsen en `Row` om ze naast elkaar te plaatsen (behalve voor lijsten, zie Lijsten). Verdeel ruimte met gewichten (`Modifier.weight(...)`) via de modifier.
+- Kleuren komen altijd uit het thema (`MaterialTheme.colorScheme.primary`, `.error`, `.outline`, …), nooit hardcoded (`Color.Red`, `Color.LightGray`, …).
 
-## Layout
-- Gebruik `Scaffold` en geef de `innerPadding` door als padding aan de content, zodat niets achter de statusbalk terechtkomt.
-
-## Lijsten
-- Toon lijsten altijd met `LazyColumn`, nooit met een gewone `Column`.
-- Gebruik `items(...)` om over de lijst te itereren.
+## Layout & lijsten
+- `MainActivity` roept `enableEdgeToEdge()` aan.
+- Elk scherm gebruikt een `Scaffold` en geeft de `innerPadding` door als padding aan de content, zodat niets achter de status- of navigatiebalk terechtkomt.
+- Gebruik `Column` om elementen onder elkaar te plaatsen en `Row` om ze naast elkaar te plaatsen. Verdeel ruimte met gewichten (`Modifier.weight(...)`) via de modifier.
+- Lijsten toon je altijd met `LazyColumn`, nooit met een gewone `Column`.
+- Itereer met `items(list, key = { it.number })`: geef altijd een unieke, stabiele `key` mee (de primary key van het item).
 - Elk item in de lijst wordt getoond in een `ElevatedCard` met een `modifier`.
 
-## State
-- De ViewModel is de enige eigenaar van de state van een view (single source of truth).
-- De state van een view staat in een UiState met dezelfde naam als de ViewModel, maar met `UiState` i.p.v. `ViewModel` (bv. `ToDoListViewModel` → `ToDoListUiState`), in een eigen bestand in `ui/viewmodels`.
-- Laadt een scherm data van het internet, dan is de UiState een `sealed interface` met `Loading`, `Success(data)` en `Error`. De view toont voor elk van de drie een ander scherm (laadindicator, inhoud, foutmelding).
-- In de ViewModel: een private `MutableStateFlow`, naar buiten enkel een read-only `StateFlow` als `val`.
-- Events (bv. op save klikken) roepen een functie van de ViewModel aan. De view past de state nooit zelf aan.
-- `rememberSaveable` enkel voor state die puur bij de UI van één component hoort (bv. open/dichtgeklapt, checkmark). Gebruik `by`, niet `=`: `var expanded by rememberSaveable { mutableStateOf(false) }`.
+## Room (lokale database)
+- Entities zijn data classes in `models` met `@Entity(tableName = "...")` en een `@PrimaryKey(autoGenerate = true)`.
+- Een relatie naar een andere entity bewaar je als id (bv. `assignedToUserId: Int?`), nooit als object (`assignedUser: User`). Leg er een `ForeignKey` op met een bewust gekozen `onDelete`, en zet altijd een `Index` op die kolom.
+- Datums worden bewaard als `Long` (epoch millis, `System.currentTimeMillis()`). De omzetting naar leesbare tekst gebeurt in de UI-laag.
+- DAO's (in `data`): leesfuncties geven een `Flow` terug (`fun getAllToDos(): Flow<List<ToDo>>`), schrijffuncties zijn `suspend` (`@Insert`, `@Update`, `@Delete`).
+- Er is één database-klasse (`ToDoDatabase`) met één instantie (singleton via `getDatabase(context)`). Voorbeelddata wordt één keer ingeladen in de `onCreate`-callback van de database.
+- Verandert een entity (kolom erbij, type gewijzigd, …), verhoog dan `version` in `@Database`. Tijdens de ontwikkeling mag `fallbackToDestructiveMigration(dropAllTables = true)`; vraag het eerst als er een echte migration nodig is.
 
 ## Netwerk & API (Retrofit)
 - De `INTERNET`-permission staat in `AndroidManifest.xml`.
-- Elke API heeft een interface in `network` (bv. `ToDoApiService`) met `suspend`-functies en Retrofit-annotaties (`@GET`, `@POST`, …).
-- Gebruik `kotlinx.serialization` om JSON om te zetten: data classes in `model` krijgen `@Serializable`, en `@SerialName("...")` als de JSON-naam verschilt van de Kotlin-naam.
-- De base URL staat op één plaats (in de `AppContainer`), niet verspreid in de code.
-- Een view of ViewModel roept de ApiService nooit rechtstreeks aan, altijd via een repository.
-
-## Repository & dependency injection
-- Per soort data één repository: een interface (bv. `ToDoRepository`) en een implementatie (bv. `NetworkToDoRepository`), genoemd naar de data waarvoor ze verantwoordelijk is.
-- De repository is de enige toegang tot data voor de ViewModels.
-- Manuele dependency injection: een `AppContainer`-interface met een `DefaultAppContainer` die Retrofit, de ApiService en de repositories aanmaakt.
-- Een eigen `Application`-klasse (bv. `ToDoApplication`) maakt de `AppContainer` aan en wordt geregistreerd in `AndroidManifest.xml` (`android:name`).
-- Een ViewModel krijgt zijn repository via de constructor, nooit door hem zelf aan te maken.
-- Omdat de ViewModel dan een constructorparameter heeft, maak je hem aan met een factory (`viewModelFactory { initializer { ... } }` in een `companion object`) en in de view met `viewModel(factory = XxxViewModel.Factory)`.
+- Elke API heeft een interface in `network` (bv. `BoredApiService`) met `suspend`-functies en Retrofit-annotaties (`@GET`, `@POST`, …). De interface bevat geen Retrofit-setup: die gebeurt bij Dependency injection.
+- Gebruik `kotlinx.serialization` om JSON om te zetten: data classes in `models` krijgen `@Serializable`, en `@SerialName("...")` als de JSON-naam verschilt van de Kotlin-naam.
+- De base URL staat op één plaats (bij Dependency injection), niet verspreid in de code.
 
 ## Coroutines
-- Netwerkcalls en andere trage taken zijn `suspend`-functies.
-- Een ViewModel start ze met `viewModelScope.launch { ... }`, nooit `GlobalScope` of `runBlocking`.
-- Vang fouten op met `try/catch` (`IOException` voor netwerkproblemen, `HttpException` voor foutcodes van de server) en zet het resultaat in de UiState.
+- Netwerkcalls, databasewerk en andere trage taken zijn `suspend`-functies (of een `Flow`).
+- Een ViewModel start ze met `viewModelScope.launch { ... }`, nooit `GlobalScope` of `runBlocking`. Room en Retrofit zijn zelf main-safe: `withContext(Dispatchers.IO)` is daarvoor niet nodig.
+- Vang netwerkfouten op met `try/catch` (`IOException` voor netwerkproblemen, `HttpException` voor foutcodes van de server) en zet het resultaat in de UiState (zie ViewModels & state). Gebruik nooit enkel `printStackTrace()`.
+
+## Navigatie (Navigation 3)
+- Gebruik bij het implementeren van navigatie altijd de Navigation 3-skill en volg de aanpak daaruit.
+- `MainActivity` roept niet rechtstreeks een view aan, maar de composable `ToDoNav` (in `ui/navigation`). Daarin staat `NavDisplay` met de entry provider.
+- Destinations staan in `sealed interface Screen : NavKey` en zijn allemaal `@Serializable`:
+  - een scherm zonder argumenten is een `data object` (bv. `Screen.ToDoList`);
+  - een scherm met argumenten is een `data class` (bv. `Screen.ToDoDetail(val todoNumber: Int)`).
+- Geef tussen schermen enkel primitieve types of serializable waarden door (bv. een `number`), nooit objecten of Room-entities. Het doelscherm haalt de rest zelf op met die waarde.
+- De backstack wordt aangemaakt met `rememberNavBackStack(Screen.ToDoList)`, zodat hij een configuratiewijziging overleeft. Een `Navigator`-klasse met `navigate(...)` en `goBack()` beheert die backstack.
+- Extra navigatieregels horen in de `Navigator`, niet in een view of ViewModel: bv. geen dubbele entries (eerst pop als de route al in de stack zit).
+- `NavDisplay` krijgt `entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator())`, zodat elke entry zijn eigen ViewModel krijgt (bv. een nieuwe `ToDoDetailViewModel` per to-do).
+- De entry provider bepaalt per key welke view getoond wordt; het is de enige plek die de koppeling tussen de schermen kent.
+- Views navigeren nooit zelf en de ViewModel kent geen navigator: navigatie verloopt via callbacks (bv. `onToDoClick`, `onBack`), doorgegeven door de entry provider in `ToDoNav`.
+
+## Dependency injection
+Deze regels gelden altijd, los van hoe DI technisch gebeurt:
+- Een klasse krijgt alles wat ze nodig heeft via de constructor. Een ViewModel maakt nooit zelf een repository, DAO of ApiService aan.
+- Er is één plek waar alle objecten (database, Retrofit, ApiServices, repositories) aangemaakt en aan elkaar gekoppeld worden.
+- ViewModels zijn `Context`-vrij.
+
+Huidige invulling: **manuele DI**. Deze sectie wordt vervangen zodra er een DI-library gekozen is.
+- Een `AppContainer`-interface (in `data`) met een `DefaultAppContainer` die de database, Retrofit (incl. de base URL), de ApiServices en de repositories aanmaakt.
+- Een eigen `Application`-klasse (`ToDoApplication`) maakt de `AppContainer` aan en is geregistreerd in `AndroidManifest.xml` (`android:name`).
+- Elke ViewModel heeft een factory in zijn `companion object`, gemaakt met `viewModelFactory { initializer { ... } }`. Die haalt de repositories uit `application.container`.
+  - Zonder navigatieargumenten: `val Factory`. De view maakt de ViewModel aan in zijn parameterlijst: `viewModel: ToDoListViewModel = viewModel(factory = ToDoListViewModel.Factory)`.
+  - Met navigatieargumenten (bv. een `number`): `fun factory(todoNumber: Int)`. De entry provider in `ToDoNav` maakt de ViewModel aan met `viewModel(factory = ToDoDetailViewModel.factory(key.todoNumber))` en geeft hem door aan de view.
+
+## Invoervelden (TextField)
+- Geef een `TextField` altijd een `value` (uit de UiState) en een `onValueChange` die een functie van de ViewModel aanroept (bv. `onValueChange = { viewModel.onTitleChange(it) }`).
+- Geef een label mee via `label = { Text(stringResource(R.string.…)) }`.
+- Gebruik voor iconen (bv. `leadingIcon`) de Material Icons van Google. Voeg daarvoor `androidx.compose.material:material-icons-core` toe via de version catalog (`gradle/libs.versions.toml` + `app/build.gradle.kts`). Heb je een icoon nodig dat niet in de basisset zit, voeg dan `material-icons-extended` toe op dezelfde manier. Gebruik geen iconen die niet beschikbaar zijn in de toegevoegde dependencies.
+  - Opmerking: Google raadt deze library niet meer aan voor nieuwe apps (Material Symbols als XML-drawable is de opvolger). Voor deze cursus blijven we ze gebruiken.
+- Importeer elk icoon expliciet (bv. `import androidx.compose.material.icons.filled.Person`). Geen wildcard-imports (`.*`), volgens de Android Kotlin style guide.
+- Decoratieve iconen (bv. een `leadingIcon`) krijgen `contentDescription = null`.
+- Velden die enkel cijfers mogen bevatten krijgen `keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)`.
+- Valideer numerieke invoer met de utility-functie, zodat de laatste geldige waarde behouden blijft: `onValueChange = { viewModel.onScoreChange(Utility.checkIntValue(it) ?: uiState.score) }`.
+
+## Utility-functies
+- Hulpfuncties staan in de package `utility`, in een `object Utility` (geen `class`), zodat ze statisch aangeroepen worden: `Utility.checkIntValue(...)`.
+- `checkIntValue(value: String): String?` werkt zo: lege string → `""` (zodat de gebruiker het veld kan leegmaken), geldige int via `value.toIntOrNull()` → `result.toString()`, anders → `null`.
 
 ## Afbeeldingen
 - Afbeeldingen van een URL tonen met Coil `AsyncImage`, altijd met een `placeholder` (laden) en een `error`-afbeelding uit `res/drawable`.
 - Een `contentDescription` komt uit `strings.xml`, behalve bij decoratieve afbeeldingen (`null`).
 
-## Navigatie
-- De app gebruikt **Navigation 3**, de officiële Android-navigatielibrary. Gebruik bij het implementeren van navigatie altijd de Navigation 3-skill en volg de aanpak daaruit (backstack als lijst van keys, `NavDisplay`, entry provider).
-- `MainActivity` roept niet rechtstreeks een view aan, maar de composable `ToDoNav` (in `ui/navigation`). Daarin staat `NavDisplay` met de entry provider.
-- Navigation destinations zijn een sealed class met `data object`s (bv. `Screen.ToDoList`, `Screen.ToDoDetail`) die `@Serializable` zijn. De entry provider bepaalt per key welke view getoond wordt — dat is de enige plek die de koppeling tussen de schermen kent.
-- De backstack is een lijst (array) van keys. Een Navigator-klasse met `navigate(...)` en `goBack()` beheert die lijst.
-- Extra navigatieregels horen in de Navigator, niet in een view of ViewModel: bv. geen dubbele entries (eerst pop als de route al in de stack zit) of login uit de backstack halen na een succesvolle login.
-- Views navigeren nooit zelf en de ViewModel kent geen navigator: navigatie verloopt via callbacks (hoisting), doorgegeven door de entry provider in `ToDoNav`.
-- Geef tussen schermen enkel primitieve types of serializable waarden door (bv. een `id`), nooit objecten of Room-modellen. Het doelscherm haalt de rest zelf op met die id.
-- Heeft een ViewModel parameters nodig (bv. een id uit de navigatie), maak dan een Factory class (een `ViewModelProvider.Factory`) en maak de ViewModel aan met `viewModel(factory = ...)` in de entry provider. De ViewModel blijft `Context`-vrij.
-
-## Invoervelden (TextField)
-- Geef een `TextField` altijd een `value` (de state-variabele) en een `onValueChange` die de state bijwerkt (bv. `onValueChange = { name = it }`).
-- Geef een label mee via `label = { Text(stringResource(R.string.…)) }`.
-- Gebruik voor iconen (bv. `leadingIcon`) de Material Icons van Google. Voeg daarvoor altijd `androidx.compose.material:material-icons-core` toe via de version catalog (`gradle/libs.versions.toml` + `app/build.gradle.kts`). Importeer met een wildcard (bv. `import androidx.compose.material.icons.filled.*`) zodat alle iconen beschikbaar zijn.
-- Heb je een icoon nodig dat niet in de basisset zit, voeg dan `androidx.compose.material:material-icons-extended` toe via de version catalog (`gradle/libs.versions.toml` + `app/build.gradle.kts`). Gebruik geen iconen die niet beschikbaar zijn in de toegevoegde dependencies.
-- Decoratieve iconen (bv. een `leadingIcon`) krijgen `contentDescription = null`.
-- Velden die enkel cijfers mogen bevatten krijgen `keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)`.
-- Valideer numerieke invoer met de utility-functie: `onValueChange = { score = Utility.checkIntValue(it) ?: score }`, zodat de laatste geldige waarde behouden blijft.
-
-## Utility-functies
-- Hulpfuncties staan in een aparte package `utility`, in een `object` (geen `class`), zodat ze statisch aangeroepen worden: `Utility.checkIntValue(...)`.
-- `checkIntValue(value: String): String?` werkt zo: lege string → `""` (zodat de gebruiker het veld kan leegmaken), geldige int via `value.toIntOrNull()` → `result.toString()`, anders → `null`.
-
 ## Resources
 - Zet geen hardcoded teksten in de code. Alle teksten komen in `res/values/strings.xml` en worden opgehaald met `stringResource(R.string.…)`.
 
 ## Manifest
-- Nodige permissions (camera, library, …) worden toegevoegd in `AndroidManifest.xml`.
+- Nodige permissions (internet, camera, …) worden toegevoegd in `AndroidManifest.xml`.
 - Nieuwe activities worden geregistreerd in `AndroidManifest.xml`.
 
 ## Dependencies
@@ -119,14 +158,15 @@
 
 ## Werkwijze
 - Maak bij grotere wijzigingen eerst een plan en wijzig geen bestanden tot ik bevestig met "proceed".
+- Doe enkel wat gevraagd wordt. Voeg geen nieuwe lagen, schermen of libraries toe zonder het eerst te vragen.
 - Controleer na elke wijziging of het project compileert en los fouten op voor je zegt dat je klaar bent.
-- Doe enkel wat gevraagd wordt. Voeg geen extra lagen toe (Room, repository, data layer, navigatie) als dat niet expliciet gevraagd is.
-- Bij navigatie-opdrachten: zeg expliciet dat de agent Navigation 3 moet gebruiken en verwijs naar de Navigation 3-skill. De Navigator- en Factory-boilerplate mag de agent genereren, maar jij bepaalt welke data (bv. een id) er doorgegeven wordt.
 
 ## Definition of Done
 Een taak is pas klaar als:
 - het project compileert (`./gradlew assembleDebug`) zonder fouten
+- de unit tests slagen (`./gradlew testDebugUnitTest`)
+- nieuwe logica in een ViewModel een unit test heeft, met een fake repository (een eigen klasse die de repository-interface implementeert) in plaats van de echte database of API
+- er geen bestaande tests verwijderd of uitgeschakeld zijn om ze te laten slagen
 - alle regels in dit bestand gevolgd zijn
 - alle teksten in `res/values/strings.xml` staan
-- er geen bestaande tests verwijderd of uitgeschakeld zijn om ze te laten slagen
 - je een korte samenvatting gegeven hebt van welke bestanden je gewijzigd hebt
