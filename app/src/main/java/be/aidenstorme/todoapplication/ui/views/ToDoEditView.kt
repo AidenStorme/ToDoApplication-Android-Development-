@@ -42,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.ui.AppTextField
+import be.aidenstorme.todoapplication.ui.viewmodels.ActivityError
 import be.aidenstorme.todoapplication.ui.viewmodels.ToDoEditViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,6 +116,18 @@ fun ToDoEditView(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.btn_im_lazy))
+            }
+            uiState.activityError?.let { error ->
+                Text(
+                    text = stringResource(
+                        when (error) {
+                            ActivityError.NETWORK -> R.string.error_activity_network
+                            ActivityError.SERVER -> R.string.error_activity_server
+                        }
+                    ),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
 

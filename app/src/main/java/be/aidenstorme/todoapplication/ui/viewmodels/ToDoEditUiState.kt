@@ -12,5 +12,11 @@ data class ToDoEditUiState(
     val developmentDone: Boolean = false,
     val reviewAndTestingDone: Boolean = false,
     val acceptanceDone: Boolean = false,
-    val users: List<User> = emptyList()
+    val users: List<User> = emptyList(),
+    val activityError: ActivityError? = null
 )
+
+enum class ActivityError {
+    NETWORK,
+    SERVER
+}

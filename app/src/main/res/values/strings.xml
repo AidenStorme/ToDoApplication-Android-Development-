@@ -28,4 +28,6 @@
     <string name="btn_back">Back</string>
     <string name="btn_im_lazy">I\'m lazy</string>
     <string name="user_full_name">%1$s %2$s</string>
+    <string name="error_activity_network">No internet connection. Please try again.</string>
+    <string name="error_activity_server">The server returned an error. Please try again later.</string>
 </resources>

@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import be.aidenstorme.todoapplication.ToDoApplication
-import be.aidenstorme.todoapplication.data.BoredApiService
+import be.aidenstorme.todoapplication.data.ActivityRepository
 import be.aidenstorme.todoapplication.data.ToDoRepository
 import be.aidenstorme.todoapplication.data.UserRepository
 import be.aidenstorme.todoapplication.models.ToDo
@@ -23,7 +23,8 @@ import java.io.IOException
 
 class ToDoEditViewModel(
     private val toDoRepository: ToDoRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val activityRepository: ActivityRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ToDoEditUiState())
     val uiState: StateFlow<ToDoEditUiState> = _uiState.asStateFlow()
@@ -106,9 +107,10 @@ class ToDoEditViewModel(
     }
 
     fun fetchRandomActivity() {
+        _uiState.update { it.copy(activityError = null) }
         viewModelScope.launch {
             try {
-                val response = BoredApiService.retrofitService.getRandomActivity()
+                val response = activityRepository.getRandomActivity()
                 _uiState.update {
                     it.copy(
                         title = response.activity,
@@ -116,9 +118,9 @@ class ToDoEditViewModel(
                     )
                 }
             } catch (e: IOException) {
-                e.printStackTrace()
+                _uiState.update { it.copy(activityError = ActivityError.NETWORK) }
             } catch (e: HttpException) {
-                e.printStackTrace()
+                _uiState.update { it.copy(activityError = ActivityError.SERVER) }
             }
         }
     }
@@ -163,7 +165,8 @@ class ToDoEditViewModel(
                 val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ToDoApplication)
                 ToDoEditViewModel(
                     toDoRepository = application.container.toDoRepository,
-                    userRepository = application.container.userRepository
+                    userRepository = application.container.userRepository,
+                    activityRepository = application.container.activityRepository
                 ).apply {
                     loadToDoToEdit(todoNumber)
                 }
