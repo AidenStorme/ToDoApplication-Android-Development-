@@ -17,7 +17,8 @@ Elke regel staat maar op één plek. Waar een regel ergens anders hoort, wordt e
   - Coil (`coil-compose`) voor afbeeldingen van het internet
   - Room (`room-runtime`, `room-ktx`, `room-compiler` via KSP) voor de lokale database
   - Navigation 3 (`androidx.navigation3:navigation3-runtime`, `androidx.navigation3:navigation3-ui`) en `androidx.lifecycle:lifecycle-viewmodel-navigation3` (een ViewModel per scherm)
-  - DI-library: *nog te bepalen* (zie Dependency injection)
+  - Hilt voor dependency injection (zie Dependency injection): de Hilt Gradle plugin, `hilt-android`, `hilt-compiler` (via KSP) en `androidx.hilt:hilt-lifecycle-viewmodel-compose` voor `hiltViewModel()`
+  - `kotlinx-coroutines-test` voor unit tests (alleen `testImplementation`)
 
 ## Architectuur
 - Lagen: View → ViewModel → Repository → DAO (Room) of ApiService (Retrofit). Een laag verwijst enkel naar de laag eronder, nooit omgekeerd.
@@ -40,6 +41,7 @@ Basispackage: `be.aidenstorme.todoapplication`. Packagenamen zijn volledig lower
 | API-interface | `network` | eindigt op `ApiService` | `BoredApiService` |
 | Repository | `data` | interface `<Data>Repository`, implementatie `Offline<Data>Repository` (Room) of `Network<Data>Repository` (API) | `ToDoRepository` / `OfflineToDoRepository` |
 | DAO & database | `data` | `<Data>Dao`, `<App>Database` | `ToDoDao`, `ToDoDatabase` |
+| Hilt-module | `di` | eindigt op `Module` | `DatabaseModule`, `NetworkModule`, `RepositoryModule` |
 | Hulpfuncties | `utility` | `object Utility` | `Utility.checkIntValue(...)` |
 
 - `<Scherm>` is de naam van de view zonder `View` (`ToDoEditView` → `ToDoEditViewModel` + `ToDoEditUiState`).
@@ -87,7 +89,7 @@ Basispackage: `be.aidenstorme.todoapplication`. Packagenamen zijn volledig lower
 - Een relatie naar een andere entity bewaar je als id (bv. `assignedToUserId: Int?`), nooit als object (`assignedUser: User`). Leg er een `ForeignKey` op met een bewust gekozen `onDelete`, en zet altijd een `Index` op die kolom.
 - Datums worden bewaard als `Long` (epoch millis, `System.currentTimeMillis()`). De omzetting naar leesbare tekst gebeurt in de UI-laag.
 - DAO's (in `data`): leesfuncties geven een `Flow` terug (`fun getAllToDos(): Flow<List<ToDo>>`), schrijffuncties zijn `suspend` (`@Insert`, `@Update`, `@Delete`).
-- Er is één database-klasse (`ToDoDatabase`) met één instantie (singleton via `getDatabase(context)`). Voorbeelddata wordt één keer ingeladen in de `onCreate`-callback van de database.
+- Er is één database-klasse (`ToDoDatabase`) met één instantie (singleton, aangemaakt in `DatabaseModule`). Voorbeelddata wordt één keer ingeladen in de `onCreate`-callback van de database (`ToDoDatabaseCallback`).
 - Verandert een entity (kolom erbij, type gewijzigd, …), verhoog dan `version` in `@Database`. Tijdens de ontwikkeling mag `fallbackToDestructiveMigration(dropAllTables = true)`; vraag het eerst als er een echte migration nodig is.
 
 ## Netwerk & API (Retrofit)
@@ -120,12 +122,18 @@ Deze regels gelden altijd, los van hoe DI technisch gebeurt:
 - Er is één plek waar alle objecten (database, Retrofit, ApiServices, repositories) aangemaakt en aan elkaar gekoppeld worden.
 - ViewModels zijn `Context`-vrij.
 
-Huidige invulling: **manuele DI**. Deze sectie wordt vervangen zodra er een DI-library gekozen is.
-- Een `AppContainer`-interface (in `data`) met een `DefaultAppContainer` die de database, Retrofit (incl. de base URL), de ApiServices en de repositories aanmaakt.
-- Een eigen `Application`-klasse (`ToDoApplication`) maakt de `AppContainer` aan en is geregistreerd in `AndroidManifest.xml` (`android:name`).
-- Elke ViewModel heeft een factory in zijn `companion object`, gemaakt met `viewModelFactory { initializer { ... } }`. Die haalt de repositories uit `application.container`.
-  - Zonder navigatieargumenten: `val Factory`. De view maakt de ViewModel aan in zijn parameterlijst: `viewModel: ToDoListViewModel = viewModel(factory = ToDoListViewModel.Factory)`.
-  - Met navigatieargumenten (bv. een `number`): `fun factory(todoNumber: Int)`. De entry provider in `ToDoNav` maakt de ViewModel aan met `viewModel(factory = ToDoDetailViewModel.factory(key.todoNumber))` en geeft hem door aan de view.
+Invulling: **Hilt**.
+- `ToDoApplication` heeft `@HiltAndroidApp` (en is geregistreerd in `AndroidManifest.xml` met `android:name`), `MainActivity` heeft `@AndroidEntryPoint`.
+- Alle objecten worden aangemaakt in Hilt-modules in de package `di`, allemaal met `@InstallIn(SingletonComponent::class)`:
+  - `DatabaseModule`: de Room-database (met de seed-callback) en de DAO's;
+  - `NetworkModule`: `Json`, OkHttp, Retrofit (incl. de base URL) en de ApiServices;
+  - `RepositoryModule`: per repository een `@Binds` van de interface naar zijn implementatie;
+  - `CoroutineModule`: de `@ApplicationScope` `CoroutineScope`.
+- Gebruik `@Binds` voor interface → implementatie en `@Provides` voor klassen die we niet zelf kunnen annoteren (Room, Retrofit, OkHttp, …). Repository-implementaties (`Offline…`, `Network…`) hebben een `@Inject constructor(...)`.
+- ViewModels hebben `@HiltViewModel`:
+  - Zonder navigatieargumenten: `@Inject constructor(...)`. De view krijgt hem in zijn parameterlijst: `viewModel: ToDoListViewModel = hiltViewModel()`.
+  - Met navigatieargumenten (bv. een `number`): `@HiltViewModel(assistedFactory = Factory::class)`, `@AssistedInject constructor(@Assisted todoNumber: Int, ...)` en een geneste `@AssistedFactory interface Factory`. De entry provider in `ToDoNav` maakt de ViewModel aan met `hiltViewModel<ToDoDetailViewModel, ToDoDetailViewModel.Factory>(creationCallback = { it.create(key.todoNumber) })` en geeft hem door aan de view.
+- In unit tests maak je een ViewModel gewoon met zijn constructor en fake repositories: daar is Hilt niet voor nodig.
 
 ## Invoervelden (TextField)
 - Geef een `TextField` altijd een `value` (uit de UiState) en een `onValueChange` die een functie van de ViewModel aanroept (bv. `onValueChange = { viewModel.onTitleChange(it) }`).

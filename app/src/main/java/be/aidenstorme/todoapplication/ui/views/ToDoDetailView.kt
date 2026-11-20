@@ -20,7 +20,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,30 +30,19 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import be.aidenstorme.todoapplication.R
-import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.ui.viewmodels.ToDoDetailViewModel
 import java.util.Locale
 
 @Composable
 fun ToDoDetailView(
+    viewModel: ToDoDetailViewModel,
     modifier: Modifier = Modifier,
-    todoNumber: Int? = null,
-    toDo: ToDo? = null,
-    viewModel: ToDoDetailViewModel = viewModel(),
     onBack: () -> Unit = {},
     onEdit: () -> Unit = {}
 ) {
-    val numberToLoad = todoNumber ?: toDo?.number
-    LaunchedEffect(numberToLoad) {
-        if (numberToLoad != null) {
-            viewModel.loadToDo(numberToLoad)
-        }
-    }
-
     val uiState by viewModel.uiState.collectAsState()
-    val currentToDo = uiState.toDo ?: toDo ?: return
+    val currentToDo = uiState.toDo ?: return
 
     Column(
         modifier = modifier

@@ -1,16 +1,16 @@
 package be.aidenstorme.todoapplication.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import be.aidenstorme.todoapplication.ToDoApplication
 import be.aidenstorme.todoapplication.data.ActivityRepository
 import be.aidenstorme.todoapplication.data.ToDoRepository
 import be.aidenstorme.todoapplication.data.UserRepository
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.models.User
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,9 +21,11 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 
-class ToDoEditViewModel(
+@HiltViewModel(assistedFactory = ToDoEditViewModel.Factory::class)
+class ToDoEditViewModel @AssistedInject constructor(
+    @Assisted todoNumber: Int?,
     private val toDoRepository: ToDoRepository,
-    private val userRepository: UserRepository,
+    userRepository: UserRepository,
     private val activityRepository: ActivityRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ToDoEditUiState())
@@ -39,39 +41,29 @@ class ToDoEditViewModel(
                 currentState.copy(users = usersList, assignedUser = updatedAssigned)
             }
         }.launchIn(viewModelScope)
+
+        // todoNumber == null betekent een nieuwe to-do: het formulier blijft dan leeg
+        if (todoNumber != null) {
+            loadToDoToEdit(todoNumber)
+        }
     }
 
-    fun loadToDoToEdit(todoNumber: Int?) {
-        if (todoNumber == null) {
-            _uiState.update {
-                it.copy(
-                    toDoToEdit = null,
-                    title = "",
-                    description = "",
-                    assignedUser = null,
-                    analysisDone = false,
-                    developmentDone = false,
-                    reviewAndTestingDone = false,
-                    acceptanceDone = false
-                )
-            }
-        } else {
-            viewModelScope.launch {
-                toDoRepository.getToDoByNumber(todoNumber).collect { toDo ->
-                    if (toDo != null) {
-                        val assigned = _uiState.value.users.find { it.id == toDo.assignedToUserId }
-                        _uiState.update {
-                            it.copy(
-                                toDoToEdit = toDo,
-                                title = toDo.title,
-                                description = toDo.description,
-                                assignedUser = assigned,
-                                analysisDone = toDo.analysisDone,
-                                developmentDone = toDo.developmentDone,
-                                reviewAndTestingDone = toDo.reviewAndTestingDone,
-                                acceptanceDone = toDo.acceptanceDone
-                            )
-                        }
+    private fun loadToDoToEdit(todoNumber: Int) {
+        viewModelScope.launch {
+            toDoRepository.getToDoByNumber(todoNumber).collect { toDo ->
+                if (toDo != null) {
+                    val assigned = _uiState.value.users.find { it.id == toDo.assignedToUserId }
+                    _uiState.update {
+                        it.copy(
+                            toDoToEdit = toDo,
+                            title = toDo.title,
+                            description = toDo.description,
+                            assignedUser = assigned,
+                            analysisDone = toDo.analysisDone,
+                            developmentDone = toDo.developmentDone,
+                            reviewAndTestingDone = toDo.reviewAndTestingDone,
+                            acceptanceDone = toDo.acceptanceDone
+                        )
                     }
                 }
             }
@@ -159,18 +151,8 @@ class ToDoEditViewModel(
         }
     }
 
-    companion object {
-        fun factory(todoNumber: Int?): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ToDoApplication)
-                ToDoEditViewModel(
-                    toDoRepository = application.container.toDoRepository,
-                    userRepository = application.container.userRepository,
-                    activityRepository = application.container.activityRepository
-                ).apply {
-                    loadToDoToEdit(todoNumber)
-                }
-            }
-        }
+    @AssistedFactory
+    interface Factory {
+        fun create(todoNumber: Int?): ToDoEditViewModel
     }
 }

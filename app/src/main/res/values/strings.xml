@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">ToDo Application</string>
-    <string name="home_greeting">Hello World!</string>
     <string name="status_new">New</string>
     <string name="status_assigned">Assigned</string>
     <string name="status_finished">Finished</string>

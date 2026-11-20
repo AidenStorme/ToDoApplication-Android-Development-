@@ -2,6 +2,7 @@ package be.aidenstorme.todoapplication.data
 
 import be.aidenstorme.todoapplication.models.User
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 interface UserRepository {
     fun getAllUsers(): Flow<List<User>>
@@ -10,7 +11,7 @@ interface UserRepository {
     suspend fun updateUser(user: User)
 }
 
-class OfflineUserRepository(private val userDao: UserDao) : UserRepository {
+class OfflineUserRepository @Inject constructor(private val userDao: UserDao) : UserRepository {
     override fun getAllUsers(): Flow<List<User>> = userDao.getAllUsers()
     override fun getUserById(id: Int): Flow<User?> = userDao.getUserById(id)
     override suspend fun insertUser(user: User): Long = userDao.insertUser(user)

@@ -2,6 +2,7 @@ package be.aidenstorme.todoapplication.data
 
 import be.aidenstorme.todoapplication.models.ToDo
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 interface ToDoRepository {
     fun getAllToDos(): Flow<List<ToDo>>
@@ -11,7 +12,7 @@ interface ToDoRepository {
     suspend fun deleteToDo(toDo: ToDo)
 }
 
-class OfflineToDoRepository(private val toDoDao: ToDoDao) : ToDoRepository {
+class OfflineToDoRepository @Inject constructor(private val toDoDao: ToDoDao) : ToDoRepository {
     override fun getAllToDos(): Flow<List<ToDo>> = toDoDao.getAllToDos()
     override fun getToDoByNumber(number: Int): Flow<ToDo?> = toDoDao.getToDoByNumber(number)
     override suspend fun insertToDo(toDo: ToDo): Long = toDoDao.insertToDo(toDo)

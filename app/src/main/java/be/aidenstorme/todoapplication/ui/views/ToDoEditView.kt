@@ -25,7 +25,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,9 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import be.aidenstorme.todoapplication.R
-import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.ui.AppTextField
 import be.aidenstorme.todoapplication.ui.viewmodels.ActivityError
 import be.aidenstorme.todoapplication.ui.viewmodels.ToDoEditViewModel
@@ -48,18 +45,11 @@ import be.aidenstorme.todoapplication.ui.viewmodels.ToDoEditViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToDoEditView(
+    viewModel: ToDoEditViewModel,
     modifier: Modifier = Modifier,
-    todoNumberToEdit: Int? = null,
-    toDoToEdit: ToDo? = null,
-    viewModel: ToDoEditViewModel = viewModel(),
     onSave: () -> Unit = {},
     onCancel: () -> Unit = {}
 ) {
-    val numberToLoad = todoNumberToEdit ?: toDoToEdit?.number
-    LaunchedEffect(numberToLoad) {
-        viewModel.loadToDoToEdit(numberToLoad)
-    }
-
     val uiState by viewModel.uiState.collectAsState()
 
     // UI-specific state for dropdown expanded (rememberSaveable, NOT in ViewModel)

@@ -1,14 +1,7 @@
 package be.aidenstorme.todoapplication
 
 import android.app.Application
-import be.aidenstorme.todoapplication.data.AppContainer
-import be.aidenstorme.todoapplication.data.DefaultAppContainer
+import dagger.hilt.android.HiltAndroidApp
 
-class ToDoApplication : Application() {
-    lateinit var container: AppContainer
-
-    override fun onCreate() {
-        super.onCreate()
-        container = DefaultAppContainer(this)
-    }
-}
+@HiltAndroidApp
+class ToDoApplication : Application()

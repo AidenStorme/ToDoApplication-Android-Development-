@@ -23,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import be.aidenstorme.todoapplication.R
 import be.aidenstorme.todoapplication.models.ToDo
 import be.aidenstorme.todoapplication.ui.AppToDoCard
@@ -32,7 +32,7 @@ import be.aidenstorme.todoapplication.ui.viewmodels.ToDoListViewModel
 @Composable
 fun ToDoListView(
     modifier: Modifier = Modifier,
-    viewModel: ToDoListViewModel = viewModel(factory = ToDoListViewModel.Factory),
+    viewModel: ToDoListViewModel = hiltViewModel(),
     onToDoClick: (ToDo) -> Unit = {},
     onAddToDoClick: () -> Unit = {}
 ) {
